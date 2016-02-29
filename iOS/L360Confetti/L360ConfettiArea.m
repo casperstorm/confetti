@@ -10,10 +10,11 @@
 #import "L360ConfettiObject.h"
 #import "L360ConfettiView.h"
 
-@interface L360ConfettiArea ()
+@interface L360ConfettiArea () <UIDynamicAnimatorDelegate>
 @property (nonatomic, strong) UIDynamicAnimator *animator;
 @property (nonatomic, strong) UIGravityBehavior *gravityBehavior;
 @property (nonatomic, strong) NSArray *colors;
+@property (nonatomic, strong) NSMutableSet *confettiObjectsCache;
 
 @end
 
@@ -41,6 +42,7 @@
 {
     self.swayLength = 50.0;
     self.blastSpread = 0.1;
+    self.confettiObjectsCache = [NSMutableSet set];
     self.animator = [[UIDynamicAnimator alloc] initWithReferenceView:self];
     
     // Create gravity behavior. Don't add till view did appear
@@ -48,6 +50,7 @@
     self.gravityBehavior.magnitude = 0.5;
     
     [self.animator addBehavior:self.gravityBehavior];
+    self.animator.delegate = self;
 }
 
 - (void)setupDataFromDelegates
@@ -95,7 +98,8 @@
                                                         [weakSelf randomFloatBetween:-100.0 and:-400.0]);
             confettiObject.density = [weakSelf randomFloatBetween:0.2 and:1.0];
             confettiObject.swayLength = [weakSelf randomFloatBetween:0.0 and:weakSelf.swayLength];
-                        
+            [weakSelf.confettiObjectsCache addObject:confettiObject];
+
             dispatch_async(dispatch_get_main_queue(), ^(void) {
                 [weakSelf addSubview:confettiView];
                 
@@ -146,6 +150,8 @@
                 confettiObject.density = [weakSelf randomFloatBetween:0.2 and:1.0];
                 confettiObject.swayLength = [weakSelf randomFloatBetween:0.0 and:weakSelf.swayLength];
                 
+                [weakSelf.confettiObjectsCache addObject:confettiObject];
+
                 dispatch_async(dispatch_get_main_queue(), ^(void) {
                     [weakSelf addSubview:confettiView];
                     // Add the confetti object behavior to the animator and the view to gravity behavior
@@ -155,6 +161,14 @@
             });
         }
     });
+}
+
+#pragma mark L360ConfettiObjectDelegate
+
+- (void)needToDeallocateConfettiObject:(L360ConfettiObject *)confettiObject
+{
+    [self.confettiObjectsCache removeObject:confettiObject];
+    confettiObject = nil;
 }
 
 #pragma mark helpers

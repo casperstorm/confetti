@@ -56,4 +56,9 @@
  */
 @property (nonatomic, readonly) UIDynamicItemBehavior *fallingBehavior;
 
+/**
+ *  Assign a delegate to handle removal of this object
+ */
+@property (nonatomic, weak) id<L360ConfettiObjectDelegate> delegate;
+
 @end
