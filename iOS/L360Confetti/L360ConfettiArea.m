@@ -10,11 +10,7 @@
 #import "L360ConfettiObject.h"
 #import "L360ConfettiView.h"
 
-@interface L360ConfettiArea () <L360ConfettiObjectDelegate>
-
-// Need to hold reference to the L360ConfettiObjects while they animate
-@property (nonatomic, strong) NSMutableSet *confettiObjectsCache;
-
+@interface L360ConfettiArea ()
 @property (nonatomic, strong) UIDynamicAnimator *animator;
 @property (nonatomic, strong) UIGravityBehavior *gravityBehavior;
 @property (nonatomic, strong) NSArray *colors;
@@ -45,7 +41,6 @@
 {
     self.swayLength = 50.0;
     self.blastSpread = 0.1;
-    self.confettiObjectsCache = [NSMutableSet set];
     self.animator = [[UIDynamicAnimator alloc] initWithReferenceView:self];
     
     // Create gravity behavior. Don't add till view did appear
@@ -76,8 +71,6 @@
 {
     [self setupDataFromDelegates];
     
-    NSMutableArray *confettiObjects = [NSMutableArray array];
-    
     __weak L360ConfettiArea *weakSelf = self;
     dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void){
         for (NSInteger i = 0; i < numberConfetti; i++) {
@@ -102,11 +95,7 @@
                                                         [weakSelf randomFloatBetween:-100.0 and:-400.0]);
             confettiObject.density = [weakSelf randomFloatBetween:0.2 and:1.0];
             confettiObject.swayLength = [weakSelf randomFloatBetween:0.0 and:weakSelf.swayLength];
-            confettiObject.delegate = weakSelf;
-            
-            [confettiObjects addObject:confettiObject];
-            [weakSelf.confettiObjectsCache addObject:confettiObject];
-            
+                        
             dispatch_async(dispatch_get_main_queue(), ^(void) {
                 [weakSelf addSubview:confettiView];
                 
@@ -122,60 +111,50 @@
 {
     [self setupDataFromDelegates];
     
-    NSMutableArray *confettiObjects = [NSMutableArray array];
-    
     __weak L360ConfettiArea *weakSelf = self;
     dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void){
         for (NSInteger i = 0; i < numberConfetti; i++) {
-            CGFloat randomWidth = confettiWidth + [weakSelf randomFloatBetween:-(confettiWidth / 2.0) and:2.0];
-            CGRect confettiFrame = CGRectMake(point.x,
-                                              point.y,
-                                              randomWidth,
-                                              randomWidth);
             
-            // Create the confetti view with the random properties
-            L360ConfettiView *confettiView = [[L360ConfettiView alloc] initWithFrame:confettiFrame
-                                                                    withFlutterSpeed:[weakSelf randomFloatBetween:1.0 and:5.0]
-                                                                         flutterType:[weakSelf randomIntegerFrom:0 to:L360ConfettiFlutterTypeCount]];
-            confettiView.backgroundColor = weakSelf.colors[[weakSelf randomIntegerFrom:0 to:weakSelf.colors.count]];
-            
-            // Each view is associated with an object that handles how the confetti falls
-            L360ConfettiObject *confettiObject = [[L360ConfettiObject alloc] initWithConfettiView:confettiView
-                                                                                 keepWithinBounds:weakSelf.bounds
-                                                                                         animator:weakSelf.animator
-                                                                                          gravity:weakSelf.gravityBehavior];
-            
-            CGFloat confettiForce = [weakSelf randomFloatBetween:force - (force * 0.3) and:force];
-            CGFloat vectorForceXmin = confettiForce * cos(angle - weakSelf.blastSpread);
-            CGFloat vectorForceXmax = confettiForce * cos(angle + weakSelf.blastSpread);
-            CGFloat vectorForceYmin = -confettiForce * sin(angle - weakSelf.blastSpread);
-            CGFloat vectorForceYmax = -confettiForce * sin(angle + weakSelf.blastSpread);
-            
-            confettiObject.linearVelocity = CGPointMake([weakSelf randomFloatBetween:vectorForceXmin and:vectorForceXmax],
-                                                        [weakSelf randomFloatBetween:vectorForceYmin and:vectorForceYmax]);
-            confettiObject.density = [weakSelf randomFloatBetween:0.2 and:1.0];
-            confettiObject.swayLength = [weakSelf randomFloatBetween:0.0 and:weakSelf.swayLength];
-            confettiObject.delegate = weakSelf;
-            
-            [confettiObjects addObject:confettiObject];
-            [weakSelf.confettiObjectsCache addObject:confettiObject];
-            
-            dispatch_async(dispatch_get_main_queue(), ^(void) {
-                [weakSelf addSubview:confettiView];
-                // Add the confetti object behavior to the animator and the view to gravity behavior
-                [weakSelf.animator addBehavior:confettiObject.fallingBehavior];
-                [weakSelf.gravityBehavior addItem:confettiView];
+            CGFloat delay = [self randomFloatBetween:0.001 and:0.1];
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                CGFloat randomWidth = confettiWidth + [weakSelf randomFloatBetween:-(confettiWidth / 2.0) and:2.0];
+                CGRect confettiFrame = CGRectMake(point.x,
+                                                  point.y,
+                                                  randomWidth,
+                                                  randomWidth);
+                
+                // Create the confetti view with the random properties
+                L360ConfettiView *confettiView = [[L360ConfettiView alloc] initWithFrame:confettiFrame
+                                                                        withFlutterSpeed:[weakSelf randomFloatBetween:1.0 and:5.0]
+                                                                             flutterType:[weakSelf randomIntegerFrom:0 to:L360ConfettiFlutterTypeCount]];
+                confettiView.backgroundColor = weakSelf.colors[[weakSelf randomIntegerFrom:0 to:weakSelf.colors.count]];
+                
+                // Each view is associated with an object that handles how the confetti falls
+                L360ConfettiObject *confettiObject = [[L360ConfettiObject alloc] initWithConfettiView:confettiView
+                                                                                     keepWithinBounds:weakSelf.bounds
+                                                                                             animator:weakSelf.animator
+                                                                                              gravity:weakSelf.gravityBehavior];
+                
+                CGFloat confettiForce = [weakSelf randomFloatBetween:force - (force * 0.3) and:force];
+                CGFloat vectorForceXmin = confettiForce * cos(angle - weakSelf.blastSpread);
+                CGFloat vectorForceXmax = confettiForce * cos(angle + weakSelf.blastSpread);
+                CGFloat vectorForceYmin = -confettiForce * sin(angle - weakSelf.blastSpread);
+                CGFloat vectorForceYmax = -confettiForce * sin(angle + weakSelf.blastSpread);
+                
+                confettiObject.linearVelocity = CGPointMake([weakSelf randomFloatBetween:vectorForceXmin and:vectorForceXmax],
+                                                            [weakSelf randomFloatBetween:vectorForceYmin and:vectorForceYmax]);
+                confettiObject.density = [weakSelf randomFloatBetween:0.2 and:1.0];
+                confettiObject.swayLength = [weakSelf randomFloatBetween:0.0 and:weakSelf.swayLength];
+                
+                dispatch_async(dispatch_get_main_queue(), ^(void) {
+                    [weakSelf addSubview:confettiView];
+                    // Add the confetti object behavior to the animator and the view to gravity behavior
+                    [weakSelf.animator addBehavior:confettiObject.fallingBehavior];
+                    [weakSelf.gravityBehavior addItem:confettiView];
+                });
             });
         }
     });
-}
-
-#pragma mark L360ConfettiObjectDelegate
-
-- (void)needToDeallocateConfettiObject:(L360ConfettiObject *)confettiObject
-{
-    [self.confettiObjectsCache removeObject:confettiObject];
-    confettiObject = nil;
 }
 
 #pragma mark helpers
